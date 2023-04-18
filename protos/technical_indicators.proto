@@ -1,0 +1,135 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+message IndicatorBase{
+    string symbol = 1;
+    optional google.protobuf.Timestamp start_date = 2;
+    optional google.protobuf.Timestamp end_date = 3;
+}
+
+enum TradeAction{
+    TRADE_ACTION_NONE = 0;
+    TRADE_ACTION_BUY = 1;
+    TRADE_ACTION_STRONG_BUY = 2;
+    TRADE_ACTION_SELL = 3;
+    TRADE_ACTION_STRONG_SELL = 4;
+}
+
+//Provide general info about:
+// status of indicator request (success and error_msg);
+//datetime diapason of returned indicator values;
+//recommended trade action that indicator is signalized;
+message IndicatorGeneralInfo{
+    bool success = 1;
+    string error_msg = 2;
+    repeated google.protobuf.Timestamp dates = 3;
+    repeated TradeAction recommended_trade_action = 4;
+}
+
+message OneChannelIndicatorResponse{
+    IndicatorGeneralInfo info = 1;
+    repeated float values = 2;
+}
+
+message SMARequest{
+    IndicatorBase base = 1;
+    uint32 period = 2;
+}
+
+// By default smoothing factor is calculated from period value as 2 / (period + 1),
+// but if smoothing_factor param is passed, then it is used in calculation.
+message EMARequest{
+    IndicatorBase base = 1;
+    uint32 period = 2;
+    optional float smoothing_factor = 3;
+}
+
+message WMARequest{
+    IndicatorBase base = 1;
+    uint32 period = 2;
+}
+
+message RoCRequest{
+    IndicatorBase base = 1;
+    uint32 period = 2;
+}
+
+//Default values of MA's periods are: 12, 26, 9 correspondingly
+message MACDRequest{
+    IndicatorBase base = 1;
+    optional uint32 fast_period = 2;
+    optional uint32 slow_period = 3;
+    optional uint32 signal_period = 4;
+}
+
+message MACDResponse{
+    IndicatorGeneralInfo info = 1;
+    repeated float macd = 2;
+    repeated float signal = 3;
+    repeated float diff = 4;
+}
+
+message RSIRequest{
+    IndicatorBase base = 1;
+    uint32 period = 2;
+}
+
+message AlligatorRequest{
+    IndicatorBase base = 1;
+}
+
+message AlligatorResponse{
+    IndicatorGeneralInfo info = 1;
+    repeated float jaw = 2;
+    repeated float teeth = 3;
+    repeated float lips = 4;
+}
+
+//Default values of MA's period and width factor are: 20 and 2 correspondingly
+message BollingerBandsRequest{
+    IndicatorBase base = 1;
+    optional uint32 ma_period = 2;
+    optional uint32 width_factor = 3;
+}
+
+message BollingerBandsResponse{
+    IndicatorGeneralInfo info = 1;
+    repeated float lower_band = 2;
+    repeated float ma = 3;
+    repeated float upper_band = 4;
+}
+
+//Default values of smoothing period and signal period are: 10 and 4 correspondingly
+message RVIRequest{
+    IndicatorBase base = 1;
+    optional uint32 smoothing_period = 3;
+    optional uint32 signal_period = 4;
+}
+
+message RVIResponse{
+    IndicatorGeneralInfo info = 1;
+    repeated float rvi = 2;
+    repeated float signal = 3;
+}
+
+service TechnicalIndicators{
+
+    rpc GetSMA(SMARequest) returns (OneChannelIndicatorResponse);
+
+    rpc GetEMA(EMARequest) returns (OneChannelIndicatorResponse);
+
+    rpc GetWMA(WMARequest) returns (OneChannelIndicatorResponse);
+
+    rpc GetRoC(RoCRequest) returns (OneChannelIndicatorResponse);
+
+    rpc GetMACD(MACDRequest) returns (MACDResponse);
+
+    rpc GetRSI(RSIRequest) returns (OneChannelIndicatorResponse);
+
+    rpc GetAlligator(AlligatorRequest) returns (AlligatorResponse);
+
+    rpc GetBollingerBands(BollingerBandsRequest) returns (BollingerBandsResponse);
+
+    rpc GetRVI(RVIRequest) returns (RVIResponse);
+}

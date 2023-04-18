@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+//message StockDataDumpRequest{
+//    uint32 stock_id = 1;
+//}
+
+// from_date and to_date are specified if user needs to get results of analytics
+// with observation only in some specific period
+// language field specify in what language the analytics and recommendations will be sent back (RUS | ENG)
+// by default its RUS
+message StockAnalysisRequest{
+    string stock_symbol = 1;
+    optional google.protobuf.Timestamp start_date = 2;
+    optional google.protobuf.Timestamp end_date = 3;
+    optional string language = 4;
+}
+
+// If processing of a new data dump went without any error processed_successfully will contain True
+// Elsewise it will contain False with error described in error_msg field
+//message StockDataDumpResponse{
+//    bool processed_successfully = 1;
+//    string error_msg = 2;
+//}
+
+// Most of the fields are different financial indicators
+// The analytics field contains analytics text that describes and interprets those indicators and observed dynamic, and
+// The investing_recommendation filed contains short recommendation about should investor buy this stock, sell or keep it
+// Two last field are provided in the requested language
+message StockAnalysisResponse{
+    bool success = 50;
+    string error_msg = 51;
+    repeated google.protobuf.Timestamp dates = 1;
+    repeated float revenue = 2;
+    repeated float operating_expenses = 4;
+    repeated float net_income = 5;
+    repeated float operating_income = 6;
+    repeated float ebitda = 7;
+    repeated float diluted_net_income = 8;
+    repeated float assets = 9;
+    repeated float current_assets = 10;
+    repeated float inventories = 11;
+    repeated float current_liabilities = 12;
+    repeated float debt = 13;
+    repeated float net_debt = 14;
+    repeated float capital_expenditures = 15;
+    repeated float cash_from_operating_activities = 16;
+    repeated float free_cash_flow = 17;
+    repeated float roa = 18;
+    repeated float roe = 19;
+    repeated float operating_margin = 20;
+    repeated float net_margin = 21;
+    repeated float dte = 22;
+    repeated float dta = 23;
+    repeated float current_ratio = 24;
+    repeated float quick_ratio = 25;
+    repeated float eps = 26;
+    repeated float pe = 27;
+    repeated float ps = 28;
+    repeated float div_per_share = 29;
+    repeated float div_yield = 30;
+    repeated float div_payout = 31;
+    string analytics = 32;
+}
+
+service StockFinancialAnalytics{
+
+    // When a new financial data comes it requires a processing to calculate and save to db all needed metrics
+    //    rpc ProcessDataDump(StockDataDumpRequest) returns (StockDataDumpResponse);
+
+    // This method is called to receive analytics info about stock
+    rpc GetAnalytics(StockAnalysisRequest) returns (StockAnalysisResponse);
+}
