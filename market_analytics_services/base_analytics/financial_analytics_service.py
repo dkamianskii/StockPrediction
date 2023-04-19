@@ -70,8 +70,6 @@ class StockFinancialAnalyticsService(StockFinancialAnalyticsServicer):
         except Exception as e:
             return StockAnalysisResponse(success=False, error_msg=e.__str__())
 
-
-
     def test(self, r: StockAnalysisRequest):
         dd = self.data_manager.get_data_string(r)
         lang = "RUS" if (r.language not in ["RUS", "ENG"]) else r.language
