@@ -1,7 +1,5 @@
 from datetime import datetime
 
-from google.protobuf.timestamp_pb2 import Timestamp
-
 from grpc_pbs.stock_financial_analytics_pb2 import StockAnalysisRequest, StockAnalysisResponse
 from grpc_pbs.stock_financial_analytics_pb2_grpc import StockFinancialAnalyticsServicer
 
@@ -20,11 +18,11 @@ class StockFinancialAnalyticsService(StockFinancialAnalyticsServicer):
         try:
             metrics = self.data_manager.load_data(request)
             metrcis_str = self.data_manager.get_data_string(metrics_df=metrics, request=request)
-            lang = "RUS" if (r.language not in ["RUS", "ENG"]) else r.language
-            analytics = self.ai_expert_agent.ask_for_analysis(r.stock_symbol, metrcis_str, lang)
+            lang = "RUS" if (request.language not in ["RUS", "ENG"]) else request.language
+            analytics = self.ai_expert_agent.ask_for_analysis(request.stock_symbol, metrcis_str, lang)
             if request.stock_symbol.upper() == "НОВАТЭК":
                 return StockAnalysisResponse(success=True, error_msg="",
-                                             dates=metrics["date"].to_list(),
+                                             years=metrics["date"].to_list(),
                                              revenue=metrics["Revenue"].to_list(),
                                              operating_income=metrics["Operating Income"].to_list(),
                                              ebitda=metrics["EBITDA"].to_list(),
@@ -35,7 +33,7 @@ class StockFinancialAnalyticsService(StockFinancialAnalyticsServicer):
                                              analytics=analytics)
             else:
                 return StockAnalysisResponse(success=True, error_msg="",
-                                             dates=metrics["date"].to_list(),
+                                             years=metrics["date"].to_list(),
                                              revenue=metrics["Revenue"].to_list(),
                                              operating_expenses=metrics["Operating Expenses"].to_list(),
                                              operating_income=metrics["Operating Income"].to_list(),
@@ -70,12 +68,11 @@ class StockFinancialAnalyticsService(StockFinancialAnalyticsServicer):
         except Exception as e:
             return StockAnalysisResponse(success=False, error_msg=e.__str__())
 
-    def test(self, r: StockAnalysisRequest):
+    def _test(self, r: StockAnalysisRequest):
         dd = self.data_manager.get_data_string(r)
         lang = "RUS" if (r.language not in ["RUS", "ENG"]) else r.language
         ms = self.ai_expert_agent.ask_for_analysis(r.stock_symbol, dd, lang)
         print(ms)
-        p = 1
 
 
 if __name__ == "__main__":
@@ -85,12 +82,14 @@ if __name__ == "__main__":
                             host='188.120.230.134',
                             port='5432')
     s = StockFinancialAnalyticsService(conn)
-    start_date = datetime(year=2015, month=1, day=1)
+    start_date = datetime(year=2000, month=1, day=1)
     end_date = datetime(year=2020, month=1, day=1)
-    start_date_t = Timestamp()
-    end_date_t = Timestamp()
-    start_date_t.FromDatetime(start_date)
-    end_date_t.FromDatetime(end_date)
-    r = StockAnalysisRequest(stock_symbol="газпром", start_date=start_date_t, end_date=end_date_t)
-    s.test(r)
+    # start_date_t = Timestamp()
+    # end_date_t = Timestamp()
+    # start_date_t.FromDatetime(start_date)
+    # end_date_t.FromDatetime(end_date)
+    #r = StockAnalysisRequest(stock_symbol="газпром", start_date=start_date_t, end_date=end_date_t)
+    r = StockAnalysisRequest(stock_symbol="газпром")
+    s._test(r)
+    
 

@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-import "google/protobuf/timestamp.proto";
+//import "google/protobuf/timestamp.proto";
 
 //message StockDataDumpRequest{
 //    uint32 stock_id = 1;
@@ -12,8 +12,8 @@ import "google/protobuf/timestamp.proto";
 // by default its RUS
 message StockAnalysisRequest{
     string stock_symbol = 1;
-    optional google.protobuf.Timestamp start_date = 2;
-    optional google.protobuf.Timestamp end_date = 3;
+    optional int32 start_year = 2;
+    optional int32 end_year = 3;
     optional string language = 4;
 }
 
@@ -31,7 +31,7 @@ message StockAnalysisRequest{
 message StockAnalysisResponse{
     bool success = 50;
     string error_msg = 51;
-    repeated google.protobuf.Timestamp dates = 1;
+    repeated int32 years = 1;
     repeated float revenue = 2;
     repeated float operating_expenses = 4;
     repeated float net_income = 5;

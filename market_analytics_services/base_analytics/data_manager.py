@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -11,6 +11,14 @@ class DataManager:
 
     def __init__(self, conn: psycopg2._psycopg.connection):
         self.conn = conn
+        self.min_max_date_available: Dict[str, Tuple] = {}
+        with self.conn.cursor() as cursor:
+            cursor.execute(f"""SELECT MIN(date), MAX(date) FROM novatek_fin_data""")
+            min_max = cursor.fetchall()[0]
+            self.min_max_date_available["НОВАТЭК"] = min_max
+            cursor.execute(f"""SELECT MIN(year), MAX(year) FROM gazprom_financial_data""")
+            min_max = cursor.fetchall()[0]
+            self.min_max_date_available["ГАЗПРОМ"] = min_max
 
     def get_data_string(self, request: StockAnalysisRequest, metrics_df: Optional[pd.DataFrame] = None) -> str:
         if metrics_df is None:
@@ -41,16 +49,15 @@ class DataManager:
     def load_data(self, request: StockAnalysisRequest) -> pd.DataFrame:
         symbol = request.stock_symbol
         symbol = symbol.upper()
-        start_date = request.start_date.ToDatetime()
-        end_date = request.end_date.ToDatetime()
-        date_bounds = ""
-        if start_date is not None:
-            date_bounds = " AND {date_field} >= {start_date}"
-        if end_date is not None:
-            date_bounds += " AND {date_field} <= {end_date}"
+        start_date = request.start_year
+        end_date = request.end_year
+        if not request.HasField('start_year') or start_date < self.min_max_date_available[symbol][0]:
+            start_date = self.min_max_date_available[symbol][0]
+        if not request.HasField('end_year') or end_date > self.min_max_date_available[symbol][1]:
+            end_date = self.min_max_date_available[symbol][1]
         if symbol == "НОВАТЭК":
-            date_bounds = date_bounds.format(date_field='date', start_date=start_date.year, end_date=end_date.year)
             with self.conn.cursor() as cursor:
+                date_bounds = f" AND date >= {start_date} AND date <= {end_date}"
                 cursor.execute(f"""SELECT DISTINCT date FROM novatek_fin_data
                                                  WHERE{date_bounds[4:]}
                                                  ORDER BY date ASC""")
@@ -77,8 +84,8 @@ class DataManager:
                 vals = cursor.fetchall()
                 df["EPS"] = [val[0] for val in vals]
         elif symbol == "ГАЗПРОМ":
-            date_bounds = date_bounds.format(date_field='year', start_date=start_date.year, end_date=end_date.year)
             with self.conn.cursor() as cursor:
+                date_bounds = f" AND year >= {start_date} AND year <= {end_date}"
                 cursor.execute(f"""SELECT DISTINCT year FROM gazprom_financial_data
                                                             WHERE{date_bounds[4:]}
                                                             ORDER BY year ASC""")

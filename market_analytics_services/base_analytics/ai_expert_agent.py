@@ -10,7 +10,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 from googletrans import Translator
 
-import ai_expert_config
+from market_analytics_services.base_analytics import ai_expert_config
 import config
 
 

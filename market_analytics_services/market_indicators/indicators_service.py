@@ -1,3 +1,4 @@
+import datetime
 from typing import Dict, Optional, List
 
 from grpc_pbs.technical_indicators_pb2_grpc import TechnicalIndicatorsServicer
@@ -35,7 +36,6 @@ class IndicatorsService(TechnicalIndicatorsServicer):
 
     def _load_data(self, data_specifics: IndicatorBase) -> pd.DataFrame:
         symbol = data_specifics.symbol
-        end_date = data_specifics.end_date.ToDatetime()
         if symbol in self.symbols_sources["yahoofinance_historical_data"]:
             source = "yahoofinance_historical_data"
         elif symbol in self.symbols_sources["tradingview_tickers_data"]:
@@ -43,7 +43,7 @@ class IndicatorsService(TechnicalIndicatorsServicer):
         else:
             raise ValueError(f"Database does not contain provided symbol: {symbol}")
         with self.conn.cursor() as cursor:
-            if end_date is None:
+            if not data_specifics.HasField('end_date'):
                 cursor.execute(f"""SELECT date::date,
                                  (MIN(ARRAY[id, (open)::float8]))[2] AS open,
                                  (MAX(ARRAY[id, (close)::float8]))[2] AS close,
@@ -52,6 +52,7 @@ class IndicatorsService(TechnicalIndicatorsServicer):
                                  GROUP BY date::date
                                  ORDER BY date::date ASC""")
             else:
+                end_date = data_specifics.end_date.ToDatetime()
                 cursor.execute(f"""SELECT date::date,
                  (MIN(ARRAY[id, (open)::float8]))[2] AS open,
                  (MAX(ARRAY[id, (close)::float8]))[2] AS close,
@@ -63,19 +64,21 @@ class IndicatorsService(TechnicalIndicatorsServicer):
             df.index = df[DataColumn.DATE]
             return df
 
+    @staticmethod
+    def _generate_general_info(indicator_df: pd.DataFrame) -> IndicatorGeneralInfo:
+        dates = [Timestamp() for _ in indicator_df[TradeActionColumn.DATE]]
+        for i, date in enumerate(indicator_df[TradeActionColumn.DATE]):
+            dates[i].FromDatetime(datetime.datetime(date.year, date.month, date.day))
+        return IndicatorGeneralInfo(success=True, error_msg="", dates=dates,
+                                    recommended_trade_action=indicator_df[TradeActionColumn.ACTION].tolist())
+
     def GetSMA(self, request: SMARequest, context) -> OneChannelIndicatorResponse:
-        start_date = request.base.start_date.ToDatetime()
+        base = request.base
+        start_date = base.start_date.ToDatetime().date() if base.HasField("start_date") else None
         try:
-            data = self._load_data(request.base)
+            data = self._load_data(base)
             indicator_df = SMA(data, request.period, start_date)
-            dates = [Timestamp() for _ in indicator_df[TradeActionColumn.DATE]]
-            for i, date in enumerate(indicator_df[TradeActionColumn.DATE]):
-                dates[i].FromDatetime(date)
-            return OneChannelIndicatorResponse(info=IndicatorGeneralInfo(success=True,
-                                                                         error_msg="",
-                                                                         dates=dates,
-                                                                         recommended_trade_action=indicator_df[
-                                                                             TradeActionColumn.ACTION].tolist()),
+            return OneChannelIndicatorResponse(info=self._generate_general_info(indicator_df),
                                                values=indicator_df[OneChannelColumn.VALUE].tolist())
         except Exception as err:
             return OneChannelIndicatorResponse(info=IndicatorGeneralInfo(success=False,
@@ -85,18 +88,15 @@ class IndicatorsService(TechnicalIndicatorsServicer):
                                                values=[])
 
     def GetEMA(self, request: EMARequest, context) -> OneChannelIndicatorResponse:
-        start_date = request.base.start_date.ToDatetime()
+        base = request.base
+        start_date = base.start_date.ToDatetime().date() if base.HasField("start_date") else None
         try:
-            data = self._load_data(request.base)
+            data = self._load_data(base)
             indicator_df = EMA(data, request.period, request.smoothing_factor, start_date)
             dates = [Timestamp() for _ in indicator_df[TradeActionColumn.DATE]]
             for i, date in enumerate(indicator_df[TradeActionColumn.DATE]):
                 dates[i].FromDatetime(date)
-            return OneChannelIndicatorResponse(info=IndicatorGeneralInfo(success=True,
-                                                                         error_msg="",
-                                                                         dates=dates,
-                                                                         recommended_trade_action=indicator_df[
-                                                                             TradeActionColumn.ACTION].tolist()),
+            return OneChannelIndicatorResponse(info=self._generate_general_info(indicator_df),
                                                values=indicator_df[OneChannelColumn.VALUE].tolist())
         except Exception as err:
             return OneChannelIndicatorResponse(info=IndicatorGeneralInfo(success=False,
@@ -106,18 +106,15 @@ class IndicatorsService(TechnicalIndicatorsServicer):
                                                values=[])
 
     def GetWMA(self, request: WMARequest, context) -> OneChannelIndicatorResponse:
-        start_date = request.base.start_date.ToDatetime()
+        base = request.base
+        start_date = base.start_date.ToDatetime().date() if base.HasField("start_date") else None
         try:
-            data = self._load_data(request.base)
+            data = self._load_data(base)
             indicator_df = WMA(data, request.period, start_date)
             dates = [Timestamp() for _ in indicator_df[TradeActionColumn.DATE]]
             for i, date in enumerate(indicator_df[TradeActionColumn.DATE]):
                 dates[i].FromDatetime(date)
-            return OneChannelIndicatorResponse(info=IndicatorGeneralInfo(success=True,
-                                                                         error_msg="",
-                                                                         dates=dates,
-                                                                         recommended_trade_action=indicator_df[
-                                                                             TradeActionColumn.ACTION].tolist()),
+            return OneChannelIndicatorResponse(info=self._generate_general_info(indicator_df),
                                                values=indicator_df[OneChannelColumn.VALUE].tolist())
         except Exception as err:
             return OneChannelIndicatorResponse(info=IndicatorGeneralInfo(success=False,
@@ -127,18 +124,15 @@ class IndicatorsService(TechnicalIndicatorsServicer):
                                                values=[])
 
     def GetRoC(self, request: RoCRequest, context) -> OneChannelIndicatorResponse:
-        start_date = request.base.start_date.ToDatetime()
+        base = request.base
+        start_date = base.start_date.ToDatetime().date() if base.HasField("start_date") else None
         try:
-            data = self._load_data(request.base)
+            data = self._load_data(base)
             indicator_df = RoC(data, request.period, start_date)
             dates = [Timestamp() for _ in indicator_df[TradeActionColumn.DATE]]
             for i, date in enumerate(indicator_df[TradeActionColumn.DATE]):
                 dates[i].FromDatetime(date)
-            return OneChannelIndicatorResponse(info=IndicatorGeneralInfo(success=True,
-                                                                         error_msg="",
-                                                                         dates=dates,
-                                                                         recommended_trade_action=indicator_df[
-                                                                             TradeActionColumn.ACTION].tolist()),
+            return OneChannelIndicatorResponse(info=self._generate_general_info(indicator_df),
                                                values=indicator_df[OneChannelColumn.VALUE].tolist())
         except Exception as err:
             return OneChannelIndicatorResponse(info=IndicatorGeneralInfo(success=False,
@@ -148,18 +142,15 @@ class IndicatorsService(TechnicalIndicatorsServicer):
                                                values=[])
 
     def GetMACD(self, request: MACDRequest, context) -> MACDResponse:
-        start_date = request.base.start_date.ToDatetime()
+        base = request.base
+        start_date = base.start_date.ToDatetime().date() if base.HasField("start_date") else None
         try:
-            data = self._load_data(request.base)
+            data = self._load_data(base)
             indicator_df = MACD(data, request.fast_period, request.slow_period, request.signal_period, start_date)
             dates = [Timestamp() for _ in indicator_df[TradeActionColumn.DATE]]
             for i, date in enumerate(indicator_df[TradeActionColumn.DATE]):
                 dates[i].FromDatetime(date)
-            return MACDResponse(info=IndicatorGeneralInfo(success=True,
-                                                          error_msg="",
-                                                          dates=dates,
-                                                          recommended_trade_action=indicator_df[
-                                                              TradeActionColumn.ACTION].tolist()),
+            return MACDResponse(info=self._generate_general_info(indicator_df),
                                 macd=indicator_df[MACDColumn.MACD].tolist(),
                                 signal=indicator_df[MACDColumn.SIGNAL].tolist(),
                                 diff=indicator_df[MACDColumn.DIFF])
@@ -173,18 +164,15 @@ class IndicatorsService(TechnicalIndicatorsServicer):
                                 diff=[])
 
     def GetRSI(self, request: RSIRequest, context) -> OneChannelIndicatorResponse:
-        start_date = request.base.start_date.ToDatetime()
+        base = request.base
+        start_date = base.start_date.ToDatetime().date() if base.HasField("start_date") else None
         try:
-            data = self._load_data(request.base)
+            data = self._load_data(base)
             indicator_df = RSI(data, request.period, start_date)
             dates = [Timestamp() for _ in indicator_df[TradeActionColumn.DATE]]
             for i, date in enumerate(indicator_df[TradeActionColumn.DATE]):
                 dates[i].FromDatetime(date)
-            return OneChannelIndicatorResponse(info=IndicatorGeneralInfo(success=True,
-                                                                         error_msg="",
-                                                                         dates=dates,
-                                                                         recommended_trade_action=indicator_df[
-                                                                             TradeActionColumn.ACTION].tolist()),
+            return OneChannelIndicatorResponse(info=self._generate_general_info(indicator_df),
                                                values=indicator_df[OneChannelColumn.VALUE].tolist())
         except Exception as err:
             return OneChannelIndicatorResponse(info=IndicatorGeneralInfo(success=False,
@@ -194,18 +182,15 @@ class IndicatorsService(TechnicalIndicatorsServicer):
                                                values=[])
 
     def GetAlligator(self, request: AlligatorRequest, context) -> AlligatorResponse:
-        start_date = request.base.start_date.ToDatetime()
+        base = request.base
+        start_date = base.start_date.ToDatetime().date() if base.HasField("start_date") else None
         try:
-            data = self._load_data(request.base)
+            data = self._load_data(base)
             indicator_df = Alligator(data, start_date)
             dates = [Timestamp() for _ in indicator_df[TradeActionColumn.DATE]]
             for i, date in enumerate(indicator_df[TradeActionColumn.DATE]):
                 dates[i].FromDatetime(date)
-            return AlligatorResponse(info=IndicatorGeneralInfo(success=True,
-                                                               error_msg="",
-                                                               dates=dates,
-                                                               recommended_trade_action=indicator_df[
-                                                                   TradeActionColumn.ACTION].tolist()),
+            return AlligatorResponse(info=self._generate_general_info(indicator_df),
                                      lips=indicator_df[AlligatorColumn.LIPS].tolist(),
                                      teeth=indicator_df[AlligatorColumn.TEETH].tolist(),
                                      jaw=indicator_df[AlligatorColumn.JAW].tolist())
@@ -219,18 +204,15 @@ class IndicatorsService(TechnicalIndicatorsServicer):
                                      jaw=[])
 
     def GetBollingerBands(self, request: BollingerBandsRequest, context) -> BollingerBandsResponse:
-        start_date = request.base.start_date.ToDatetime()
+        base = request.base
+        start_date = base.start_date.ToDatetime().date() if base.HasField("start_date") else None
         try:
-            data = self._load_data(request.base)
+            data = self._load_data(base)
             indicator_df = BollingerBands(data, request.ma_period, request.width_factor, start_date)
             dates = [Timestamp() for _ in indicator_df[TradeActionColumn.DATE]]
             for i, date in enumerate(indicator_df[TradeActionColumn.DATE]):
                 dates[i].FromDatetime(date)
-            return BollingerBandsResponse(info=IndicatorGeneralInfo(success=True,
-                                                                    error_msg="",
-                                                                    dates=dates,
-                                                                    recommended_trade_action=indicator_df[
-                                                                        TradeActionColumn.ACTION].tolist()),
+            return BollingerBandsResponse(info=self._generate_general_info(indicator_df),
                                           lower_band=indicator_df[BollingerBandsColumn.LOWER_BAND].tolist(),
                                           ma=indicator_df[BollingerBandsColumn.MA].tolist(),
                                           upper_band=indicator_df[BollingerBandsColumn.UPPER_BAND].tolist())
@@ -244,18 +226,15 @@ class IndicatorsService(TechnicalIndicatorsServicer):
                                           upper_band=[])
 
     def GetRVI(self, request: RVIRequest, context) -> RVIResponse:
-        start_date = request.base.start_date.ToDatetime()
+        base = request.base
+        start_date = base.start_date.ToDatetime().date() if base.HasField("start_date") else None
         try:
-            data = self._load_data(request.base)
+            data = self._load_data(base)
             indicator_df = RVI(data, request.smoothing_period, request.signal_period, start_date)
             dates = [Timestamp() for _ in indicator_df[TradeActionColumn.DATE]]
             for i, date in enumerate(indicator_df[TradeActionColumn.DATE]):
                 dates[i].FromDatetime(date)
-            return RVIResponse(info=IndicatorGeneralInfo(success=True,
-                                                         error_msg="",
-                                                         dates=dates,
-                                                         recommended_trade_action=indicator_df[
-                                                             TradeActionColumn.ACTION].tolist()),
+            return RVIResponse(info=self._generate_general_info(indicator_df),
                                rvi=indicator_df[RVIColumn.RVI].tolist(),
                                signal=indicator_df[RVIColumn.SIGNAL].tolist())
         except Exception as err:
@@ -300,4 +279,3 @@ if __name__ == "__main__":
         symbols_dict[symbol[0]] = df
     cursor.close()
     conn.close()
-    a = 1
