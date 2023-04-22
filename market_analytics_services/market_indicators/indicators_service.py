@@ -44,21 +44,14 @@ class IndicatorsService(TechnicalIndicatorsServicer):
             raise ValueError(f"Database does not contain provided symbol: {symbol}")
         with self.conn.cursor() as cursor:
             if not data_specifics.HasField('end_date'):
-                cursor.execute(f"""SELECT date::date,
-                                 (MIN(ARRAY[id, (open)::float8]))[2] AS open,
-                                 (MAX(ARRAY[id, (close)::float8]))[2] AS close,
-                                 MAX(high), MIN(low) FROM {source}
-                                 WHERE ticker = '{symbol}'
-                                 GROUP BY date::date
+                cursor.execute(f"""SELECT date::date, open, close, high, low
+                                 WHERE ticker = '{symbol}' AND interval = '1d'
                                  ORDER BY date::date ASC""")
             else:
                 end_date = data_specifics.end_date.ToDatetime()
-                cursor.execute(f"""SELECT date::date,
-                 (MIN(ARRAY[id, (open)::float8]))[2] AS open,
-                 (MAX(ARRAY[id, (close)::float8]))[2] AS close,
-                 MAX(high), MIN(low) FROM {source}
-                 WHERE ticker = '{symbol}' AND date::date <= '{end_date}'
-                 GROUP BY date::date
+                cursor.execute(f"""SELECT date::date, open, close, high, low
+                 FROM {source}
+                 WHERE ticker = '{symbol}' AND interval = '1d' AND date::date <= '{end_date}'
                  ORDER BY date::date ASC""")
             df = pd.DataFrame(cursor.fetchall(), columns=DataColumn)
             df.index = df[DataColumn.DATE]
@@ -230,7 +223,7 @@ class IndicatorsService(TechnicalIndicatorsServicer):
         start_date = base.start_date.ToDatetime().date() if base.HasField("start_date") else None
         try:
             data = self._load_data(base)
-            indicator_df = RVI(data, request.smoothing_period, request.signal_period, start_date)
+            indicator_df = RVI(data, request.smoothing_period, start_date)
             dates = [Timestamp() for _ in indicator_df[TradeActionColumn.DATE]]
             for i, date in enumerate(indicator_df[TradeActionColumn.DATE]):
                 dates[i].FromDatetime(date)

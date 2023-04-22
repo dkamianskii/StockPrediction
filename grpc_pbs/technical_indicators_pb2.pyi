@@ -125,14 +125,12 @@ class RSIRequest(_message.Message):
     def __init__(self, base: _Optional[_Union[IndicatorBase, _Mapping]] = ..., period: _Optional[int] = ...) -> None: ...
 
 class RVIRequest(_message.Message):
-    __slots__ = ["base", "signal_period", "smoothing_period"]
+    __slots__ = ["base", "smoothing_period"]
     BASE_FIELD_NUMBER: _ClassVar[int]
-    SIGNAL_PERIOD_FIELD_NUMBER: _ClassVar[int]
     SMOOTHING_PERIOD_FIELD_NUMBER: _ClassVar[int]
     base: IndicatorBase
-    signal_period: int
     smoothing_period: int
-    def __init__(self, base: _Optional[_Union[IndicatorBase, _Mapping]] = ..., smoothing_period: _Optional[int] = ..., signal_period: _Optional[int] = ...) -> None: ...
+    def __init__(self, base: _Optional[_Union[IndicatorBase, _Mapping]] = ..., smoothing_period: _Optional[int] = ...) -> None: ...
 
 class RVIResponse(_message.Message):
     __slots__ = ["info", "rvi", "signal"]

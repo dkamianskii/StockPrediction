@@ -100,11 +100,10 @@ message BollingerBandsResponse{
     repeated float upper_band = 4;
 }
 
-//Default values of smoothing period and signal period are: 10 and 4 correspondingly
+//Default value of smoothing period is 10
 message RVIRequest{
     IndicatorBase base = 1;
-    optional uint32 smoothing_period = 3;
-    optional uint32 signal_period = 4;
+    optional uint32 smoothing_period = 2;
 }
 
 message RVIResponse{
