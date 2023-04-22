@@ -8,6 +8,7 @@ from enum import Enum
 from grpc_pbs.technical_indicators_pb2 import TRADE_ACTION_BUY, TRADE_ACTION_NONE, TRADE_ACTION_SELL, \
     TRADE_ACTION_STRONG_BUY, TRADE_ACTION_STRONG_SELL
 from market_analytics_services.market_indicators.indicators_enums import TradeActionColumn, DataColumn, AlligatorColumn
+from datetime import date
 
 
 def Alligator(data: pd.DataFrame,

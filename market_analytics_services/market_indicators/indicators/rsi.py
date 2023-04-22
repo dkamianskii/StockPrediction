@@ -8,10 +8,12 @@ from grpc_pbs.technical_indicators_pb2 import TRADE_ACTION_BUY, TRADE_ACTION_NON
     TRADE_ACTION_STRONG_BUY, TRADE_ACTION_STRONG_SELL
 from market_analytics_services.market_indicators.indicators_enums import TradeActionColumn, DataColumn, OneChannelColumn
 
+from datetime import date
+
 
 def RSI(data: pd.DataFrame,
         period: int,
-        start_date: Optional[pd.Timestamp] = None) -> pd.DataFrame:
+        start_date: Optional[date] = None) -> pd.DataFrame:
     indicator_df = pd.DataFrame(data[DataColumn.DATE])
     indicator_df.columns = [TradeActionColumn.DATE]
     indicator_df[TradeActionColumn.ACTION] = TRADE_ACTION_NONE

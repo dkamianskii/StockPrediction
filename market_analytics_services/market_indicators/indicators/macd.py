@@ -7,20 +7,21 @@ from ta.trend import MACD as macd
 from grpc_pbs.technical_indicators_pb2 import TRADE_ACTION_BUY, TRADE_ACTION_NONE, TRADE_ACTION_SELL, \
     TRADE_ACTION_STRONG_BUY, TRADE_ACTION_STRONG_SELL
 from market_analytics_services.market_indicators.indicators_enums import TradeActionColumn, DataColumn, MACDColumn
+from datetime import date
 
 
 def MACD(data: pd.DataFrame,
          fast_period: Optional[int] = None,
          slow_period: Optional[int] = None,
          signal_period: Optional[int] = None,
-         start_date: Optional[pd.Timestamp] = None) -> pd.DataFrame:
+         start_date: Optional[date] = None) -> pd.DataFrame:
     fast_period = 12 if fast_period is None else fast_period
     slow_period = 26 if slow_period is None else slow_period
     signal_period = 9 if signal_period is None else signal_period
     indicator_df = pd.DataFrame(data[DataColumn.DATE])
     indicator_df.columns = [TradeActionColumn.DATE]
     indicator_df[TradeActionColumn.ACTION] = TRADE_ACTION_NONE
-    calculated = macd(data[DataColumn.CLOSE], fast_period, slow_period, signal_period)
+    calculated = macd(data[DataColumn.CLOSE], slow_period, fast_period, signal_period)
     indicator_df[MACDColumn.MACD] = calculated.macd()
     indicator_df[MACDColumn.SIGNAL] = calculated.macd_signal()
     indicator_df[MACDColumn.DIFF] = calculated.macd_diff()

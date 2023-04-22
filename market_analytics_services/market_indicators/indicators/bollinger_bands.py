@@ -7,12 +7,12 @@ from ta.volatility import bollinger_hband, bollinger_lband, bollinger_mavg
 from grpc_pbs.technical_indicators_pb2 import TRADE_ACTION_BUY, TRADE_ACTION_NONE, TRADE_ACTION_SELL, \
     TRADE_ACTION_STRONG_BUY, TRADE_ACTION_STRONG_SELL
 from market_analytics_services.market_indicators.indicators_enums import TradeActionColumn, DataColumn, BollingerBandsColumn
-
+from datetime import date
 
 def BollingerBands(data: pd.DataFrame,
                    ma_period: Optional[int] = None,
                    width_factor: Optional[int] = None,
-                   start_date: Optional[pd.Timestamp] = None) -> pd.DataFrame:
+                   start_date: Optional[date] = None) -> pd.DataFrame:
     ma_period = 20 if ma_period is None else ma_period
     width_factor = 2 if width_factor is None else width_factor
     indicator_df = pd.DataFrame(data[DataColumn.DATE])
