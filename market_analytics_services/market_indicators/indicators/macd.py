@@ -38,8 +38,10 @@ def macd_trade_strategy(macd_df):
     diff = macd_df[MACDColumn.DIFF]
     diff_prev = diff.shift(1)
     sus_map = (diff == 0) | (np.sign(diff_prev) != np.sign(diff))
+    sus_buy = np.sign(diff_prev) < np.sign(diff)
+    sus_sell = np.sign(diff_prev) > np.sign(diff)
     action = TradeActionColumn.ACTION
-    macd_df.loc[sus_map & (np.sign(diff_prev) > 0), action] = TRADE_ACTION_SELL
-    macd_df.loc[sus_map & (np.sign(diff_prev) > 0) & (macd > 0), action] = TRADE_ACTION_STRONG_SELL
-    macd_df.loc[sus_map & (np.sign(diff_prev) < 0), action] = TRADE_ACTION_BUY
-    macd_df.loc[sus_map & (np.sign(diff_prev) < 0) & (macd < 0), action] = TRADE_ACTION_STRONG_BUY
+    macd_df.loc[sus_sell, action] = TRADE_ACTION_SELL
+    macd_df.loc[sus_sell & (macd > 0), action] = TRADE_ACTION_STRONG_SELL
+    macd_df.loc[sus_buy, action] = TRADE_ACTION_BUY
+    macd_df.loc[sus_buy & (macd < 0), action] = TRADE_ACTION_STRONG_BUY

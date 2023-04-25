@@ -9,6 +9,7 @@ from grpc_pbs.technical_indicators_pb2 import TRADE_ACTION_BUY, TRADE_ACTION_NON
 from market_analytics_services.market_indicators.indicators_enums import TradeActionColumn, DataColumn, BollingerBandsColumn
 from datetime import date
 
+
 def BollingerBands(data: pd.DataFrame,
                    ma_period: Optional[int] = None,
                    width_factor: Optional[int] = None,
@@ -30,14 +31,12 @@ def BollingerBands(data: pd.DataFrame,
 
 
 def bollinger_bands_strategy(data, bb_df):
-    openp = data[DataColumn.OPEN]
-    closep = data[DataColumn.CLOSE]
+    open = data[DataColumn.OPEN]
+    close = data[DataColumn.CLOSE]
     up_b = bb_df[BollingerBandsColumn.UPPER_BAND]
     low_b = bb_df[BollingerBandsColumn.LOWER_BAND]
-    ma = bb_df[BollingerBandsColumn.MA]
-    ma_diff = np.abs(up_b - ma)
     action = TradeActionColumn.ACTION
-    bb_df.loc[(openp > ma) & (openp - ma >= 0.95 * ma_diff) & (closep > up_b), action] = TRADE_ACTION_SELL
-    bb_df.loc[(openp < ma) & (openp - ma <= -0.95 * ma_diff) & (closep < low_b), action] = TRADE_ACTION_BUY
-    bb_df.loc[(openp > up_b) & (closep > up_b), action] = TRADE_ACTION_STRONG_SELL
-    bb_df.loc[(openp < low_b) & (closep < low_b), action] = TRADE_ACTION_STRONG_BUY
+    bb_df.loc[(close > up_b) & (close > open), action] = TRADE_ACTION_SELL
+    bb_df.loc[(close < low_b) & (close < open), action] = TRADE_ACTION_BUY
+    bb_df.loc[(open > up_b) & (close > up_b), action] = TRADE_ACTION_STRONG_SELL
+    bb_df.loc[(open < low_b) & (close < low_b), action] = TRADE_ACTION_STRONG_BUY

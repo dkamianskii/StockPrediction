@@ -30,8 +30,6 @@ def rsi_trade_strategy(rsi_df):
     rsi = rsi_df[OneChannelColumn.VALUE]
     rsi_prev = rsi.shift(1)
     action = TradeActionColumn.ACTION
-    rsi_df.loc[rsi >= 80, action] = TRADE_ACTION_STRONG_SELL
-    rsi_df.loc[rsi <= 20, action] = TRADE_ACTION_STRONG_BUY
     rsi_df.loc[(rsi < 70) & (rsi >= 67.5) & (rsi_prev >= 70), action] = TRADE_ACTION_SELL
     rsi_df.loc[(rsi > 30) & (rsi <= 32.5) & (rsi_prev <= 30), action] = TRADE_ACTION_BUY
     rsi_df.loc[(rsi >= 70) &
@@ -40,3 +38,5 @@ def rsi_trade_strategy(rsi_df):
     rsi_df.loc[(rsi <= 30) &
                (rsi_prev <= 30) &
                ((np.abs(rsi - rsi_prev) >= 5) | (rsi > 29.5)), action] = TRADE_ACTION_BUY
+    rsi_df.loc[rsi >= 80, action] = TRADE_ACTION_STRONG_SELL
+    rsi_df.loc[rsi <= 20, action] = TRADE_ACTION_STRONG_BUY

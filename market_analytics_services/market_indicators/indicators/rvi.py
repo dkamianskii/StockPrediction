@@ -37,8 +37,8 @@ def rvi_trade_strategy(rvi_df):
     sus_buy = np.sign(diff_prev) < np.sign(diff)
     sus_sell = np.sign(diff_prev) > np.sign(diff)
     action = TradeActionColumn.ACTION
-    rvi_df.loc[sus_buy & (rvi_df[RVIColumn.RVI] < -0.05), action] = TRADE_ACTION_BUY
-    rvi_df.loc[sus_buy & (rvi_df[RVIColumn.RVI] < -0.1), action] = TRADE_ACTION_STRONG_BUY
-    rvi_df.loc[sus_sell & (rvi_df[RVIColumn.RVI] > 0.05), action] = TRADE_ACTION_SELL
-    rvi_df.loc[sus_sell & (rvi_df[RVIColumn.RVI] > 0.1), action] = TRADE_ACTION_STRONG_SELL
+    rvi_df.loc[sus_buy & (rvi_df[RVIColumn.RVI] < -0.2), action] = TRADE_ACTION_BUY
+    rvi_df.loc[sus_buy & (rvi_df[RVIColumn.RVI] < -0.35), action] = TRADE_ACTION_STRONG_BUY
+    rvi_df.loc[sus_sell & (rvi_df[RVIColumn.RVI] > 0.2), action] = TRADE_ACTION_SELL
+    rvi_df.loc[sus_sell & (rvi_df[RVIColumn.RVI] > 0.35), action] = TRADE_ACTION_STRONG_SELL
 

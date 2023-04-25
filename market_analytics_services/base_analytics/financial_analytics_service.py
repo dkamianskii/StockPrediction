@@ -91,5 +91,5 @@ if __name__ == "__main__":
     #r = StockAnalysisRequest(stock_symbol="газпром", start_date=start_date_t, end_date=end_date_t)
     r = StockAnalysisRequest(stock_symbol="газпром")
     s._test(r)
-    
+
 
