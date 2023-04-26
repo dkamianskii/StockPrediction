@@ -25,12 +25,16 @@ class AIExpertAgent(webdriver.Chrome):
         self.waiter = WebDriverWait(self, self.waiting_time + 40)
         self.translator = Translator(service_urls=['translate.googleapis.com'])
         self.bot_responses = []
-        self.base_prompt = "You are a professional stock market analyst. You need to write middle size (350-400 words) fundamental analysis summary for gas producing company {company} with metrics:{metrics}.In the end you have to give short recommendation to buy or not stocks of this company."
+        self.analysis_prompt = """I want you to act as a professional stock market analyst. You need to write a fundamental analysis about gas producing company {company}. It has to be about 500 words or more. I will give you company's metrics for years {years} and you have to write what do they tell about company's business activity. My first message is "{metrics}" """
+        self.conclusion_prompt = """I want you to act as a professional stock market analyst. I will give you a metrcis of a public gas producing company for years {years} and you will give an answer should I invest in this company or not based on this metrcis.Your answer should be 'Recommended for investing' or 'Not recommended for investing' only. Do not provide any additional information. My first message is "{metrics}" """
 
-    def _get_full_response(self, text_area, task: str) -> bool:
+    def _get_full_response(self, text_area, task: str, conclusion: bool) -> bool:
         text_area.send_keys(task)
         text_area.send_keys(Keys.RETURN)
-        time.sleep(self.waiting_time)
+        if conclusion:
+            time.sleep(ai_expert_config.CONCLUSION_WAIT_TIME)
+        else:
+            time.sleep(self.waiting_time)
         self.bot_responses = [self.waiter.until(
             EC.visibility_of_element_located((By.CSS_SELECTOR, "div[data-testid='bot']")))]
         conts = 0
@@ -46,11 +50,11 @@ class AIExpertAgent(webdriver.Chrome):
                 EC.visibility_of_all_elements_located((By.CSS_SELECTOR, "div[data-testid='bot']")))
         return True
 
-    def _dialog(self, start_prompt: str) -> Optional[str]:
+    def _dialog(self, prompt: str, conclusion: bool = False) -> Optional[str]:
         self.refresh()
         time.sleep(2)
         text_area = self.waiter.until(EC.visibility_of_element_located((By.TAG_NAME, "textarea")))
-        if self._get_full_response(text_area, start_prompt):
+        if self._get_full_response(text_area, prompt, conclusion):
             analysis: str = self.bot_responses[0].text
             for response in [r.text for r in self.bot_responses[1:]]:
                 repeat_place = -1
@@ -68,16 +72,19 @@ class AIExpertAgent(webdriver.Chrome):
         else:
             return None
 
-    def ask_for_analysis(self, stock_symbol: str, data_string: str, language):
+    def ask_for_analysis(self, stock_symbol: str, years: str, data_string: str, language):
         self.get("https://chat.lmsys.org/")
         time.sleep(1)
-        start_prompt = self.base_prompt.format(company=stock_symbol, metrics=data_string)
+        start_prompt = self.analysis_prompt.format(company=stock_symbol, years=years, metrics=data_string)
+        final_prompt = self.conclusion_prompt.format(years=years, metrics=data_string)
         attempts = 0
         summary = None
         while summary is None and attempts != ai_expert_config.MAX_ATTEMPTS:
             attempts += 1
             try:
                 summary = self._dialog(start_prompt)
+                conclusion = self._dialog(final_prompt, True)
+                summary += f"\nFinal conclusion: {conclusion}"
             except Exception as e:
                 if config.LOG:
                     print(e)

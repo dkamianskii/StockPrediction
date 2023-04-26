@@ -20,15 +20,19 @@ class DataManager:
             min_max = cursor.fetchall()[0]
             self.min_max_date_available["ГАЗПРОМ"] = min_max
 
-    def get_data_string(self, request: StockAnalysisRequest, metrics_df: Optional[pd.DataFrame] = None) -> str:
+    def get_data_string(self, request: StockAnalysisRequest, metrics_df: Optional[pd.DataFrame] = None) -> Tuple[str, str]:
         if metrics_df is None:
             metrics_df = self.load_data(request)
         symbol = request.stock_symbol
         symbol = symbol.upper()
         if metrics_df.shape[0] > 3:
             metrics_df = metrics_df[-3:]
+        years = ""
+        for year in metrics_df.index.to_list():
+            years += f"{year},"
+        years = years[:-1]
         if symbol == "НОВАТЭК":
-            return f"""Revenue: {metrics_df['Revenue'].to_list()},Operating Income: {metrics_df['Operating Income'].to_list()},EBITDA: {metrics_df['EBITDA'].to_list()},Cash From Operating Activities: {metrics_df['Cash From Operating Activities'].to_list()},Capital Expenditures: {metrics_df['Capital Expenditures'].to_list()},Free Cash Flow: {metrics_df['Free Cash Flow'].to_list()}, EPS: {metrics_df['EPS'].to_list()}, for years: {metrics_df.index.to_list()} correspondingly"""
+            return years, f"""Revenue: {metrics_df['Revenue'].to_list()},Operating Income: {metrics_df['Operating Income'].to_list()},EBITDA: {metrics_df['EBITDA'].to_list()},Cash From Operating Activities: {metrics_df['Cash From Operating Activities'].to_list()},Capital Expenditures: {metrics_df['Capital Expenditures'].to_list()},Free Cash Flow: {metrics_df['Free Cash Flow'].to_list()},EPS: {metrics_df['EPS'].to_list()}"""
         elif symbol == "ГАЗПРОМ":
             data_string = f"Revenue: {metrics_df['Revenue'].to_list()},"
             data_string += f",Operating Expenses: {metrics_df['Operating Expenses'].to_list()}"
@@ -42,8 +46,7 @@ class DataManager:
             data_string += f",PE: {metrics_df['PE'].to_list()}"
             data_string += f",EPS: {metrics_df['EPS'].to_list()}"
             data_string += f",Dividend yield: {metrics_df['Dividend yield'].to_list()}"
-            data_string += f" for years: {metrics_df.index.to_list()} correspondingly"
-            return data_string
+            return years, data_string
         else:
             raise ValueError("Unknown stock symbol was passed")
 
@@ -57,6 +60,8 @@ class DataManager:
         if not request.HasField('end_year') or end_date > self.min_max_date_available[symbol][1]:
             end_date = self.min_max_date_available[symbol][1]
         if symbol == "НОВАТЭК":
+            if start_date < 2015:
+                start_date = 2015
             with self.conn.cursor() as cursor:
                 date_bounds = f" AND date >= {start_date} AND date <= {end_date}"
                 cursor.execute(f"""SELECT DISTINCT date FROM novatek_fin_data

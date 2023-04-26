@@ -17,11 +17,11 @@ class StockFinancialAnalyticsService(StockFinancialAnalyticsServicer):
     def GetAnalytics(self, request: StockAnalysisRequest, context) -> StockAnalysisResponse:
         try:
             metrics = self.data_manager.load_data(request)
-            metrcis_str = self.data_manager.get_data_string(metrics_df=metrics, request=request)
+            years, metrcis_str = self.data_manager.get_data_string(metrics_df=metrics, request=request)
             lang = "RUS" if (request.language not in ["RUS", "ENG"]) else request.language
             #analytics = self.ai_expert_agent.ask_for_analysis(request.stock_symbol, metrcis_str, lang)
             ai_expert_agent = AIExpertAgent()
-            analytics = ai_expert_agent.ask_for_analysis(request.stock_symbol, metrcis_str, lang)
+            analytics = ai_expert_agent.ask_for_analysis(request.stock_symbol, years, metrcis_str, lang)
             if request.stock_symbol.upper() == "НОВАТЭК":
                 return StockAnalysisResponse(success=True, error_msg="",
                                              years=metrics["date"].to_list(),
@@ -71,9 +71,9 @@ class StockFinancialAnalyticsService(StockFinancialAnalyticsServicer):
             return StockAnalysisResponse(success=False, error_msg=e.__str__())
 
     def _test(self, r: StockAnalysisRequest):
-        dd = self.data_manager.get_data_string(r)
+        years, dd = self.data_manager.get_data_string(r)
         lang = "RUS" if (r.language not in ["RUS", "ENG"]) else r.language
-        ms = self.ai_expert_agent.ask_for_analysis(r.stock_symbol, dd, lang)
+        ms = AIExpertAgent().ask_for_analysis(r.stock_symbol, years, dd, lang)
         print(ms)
 
 
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     # start_date_t.FromDatetime(start_date)
     # end_date_t.FromDatetime(end_date)
     #r = StockAnalysisRequest(stock_symbol="газпром", start_date=start_date_t, end_date=end_date_t)
-    r = StockAnalysisRequest(stock_symbol="газпром")
+    r = StockAnalysisRequest(stock_symbol="новатэк")
     s._test(r)
 
 
