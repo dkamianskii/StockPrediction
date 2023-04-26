@@ -21,11 +21,12 @@ def market_analytics_server(max_workers: int = 10,
                                  host='188.120.230.134',
                                  port='5432')
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
-    server.add_insecure_port('[::]:50051')
+    server.add_insecure_port(address_of_port)
     add_StockFinancialAnalyticsServicer_to_server(StockFinancialAnalyticsService(conn), server)
     add_TechnicalIndicatorsServicer_to_server(IndicatorsService(conn), server)
     server.start()
-    print("market analytics server started")
+    if LOG:
+        print("market analytics server started")
     server.wait_for_termination()
 
 
