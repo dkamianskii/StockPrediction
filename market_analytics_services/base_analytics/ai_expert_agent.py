@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import time
+from typing import Optional
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -15,60 +16,74 @@ import config
 
 
 class AIExpertAgent(webdriver.Chrome):
+    driver_path = str(Path(__file__).parent.parent.parent) + "\\SeleniumDrivers"
+    os.environ['PATH'] += driver_path
 
     def __init__(self):
-        parent_path = Path(__file__).parent.parent.parent
-        self.driver_path = str(parent_path) + "\\SeleniumDrivers"
-        os.environ['PATH'] += self.driver_path
         super().__init__()
-        self.get("https://chat.lmsys.org/")
-        time.sleep(1)
         self.waiting_time = ai_expert_config.WRITING_WAIT_TIME
+        self.waiter = WebDriverWait(self, self.waiting_time + 40)
         self.translator = Translator(service_urls=['translate.googleapis.com'])
+        self.bot_responses = []
         self.base_prompt = "You are a professional stock market analyst. You need to write middle size (350-400 words) fundamental analysis summary for gas producing company {company} with metrics:{metrics}.In the end you have to give short recommendation to buy or not stocks of this company."
 
+    def _get_full_response(self, text_area, task: str) -> bool:
+        text_area.send_keys(task)
+        text_area.send_keys(Keys.RETURN)
+        time.sleep(self.waiting_time)
+        self.bot_responses = [self.waiter.until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, "div[data-testid='bot']")))]
+        conts = 0
+        e = self.bot_responses[-1].text[-1]
+        while self.bot_responses[-1].text[-1] != '.':
+            if conts == ai_expert_config.MAX_CONTINUES:
+                return False
+            conts += 1
+            text_area.send_keys("continue")
+            text_area.send_keys(Keys.RETURN)
+            time.sleep(ai_expert_config.CONTINUE_WAIT_TIME)
+            self.bot_responses = self.waiter.until(
+                EC.visibility_of_all_elements_located((By.CSS_SELECTOR, "div[data-testid='bot']")))
+        return True
+
+    def _dialog(self, start_prompt: str) -> Optional[str]:
+        self.refresh()
+        time.sleep(2)
+        text_area = self.waiter.until(EC.visibility_of_element_located((By.TAG_NAME, "textarea")))
+        if self._get_full_response(text_area, start_prompt):
+            analysis: str = self.bot_responses[0].text
+            for response in [r.text for r in self.bot_responses[1:]]:
+                repeat_place = -1
+                for i in range(1, min(len(analysis), len(response), 100)):
+                    if analysis[-i:] == response[:i]:
+                        repeat_place = i
+                    elif repeat_place != -1:
+                        break
+                if repeat_place != -1:
+                    response = response[repeat_place:]
+                if analysis[-1] != " " and response[0] != 0:
+                    analysis += " "
+                analysis += response
+            return analysis
+        else:
+            return None
+
     def ask_for_analysis(self, stock_symbol: str, data_string: str, language):
-        msg = self.base_prompt.format(company=stock_symbol, metrics=data_string)
+        self.get("https://chat.lmsys.org/")
+        time.sleep(1)
+        start_prompt = self.base_prompt.format(company=stock_symbol, metrics=data_string)
         attempts = 0
-        success = False
-        summary = ""
-        while not success and attempts != ai_expert_config.MAX_ATTEMPTS:
+        summary = None
+        while summary is None and attempts != ai_expert_config.MAX_ATTEMPTS:
             attempts += 1
             try:
-                self.refresh()
-                time.sleep(1)
-                wait = WebDriverWait(self, self.waiting_time + 40)
-                text_area = wait.until(EC.visibility_of_element_located((By.TAG_NAME, "textarea")))
-                text_area.send_keys(msg)
-                text_area.send_keys(Keys.RETURN)
-                time.sleep(2)
-                send_button = wait.until(EC.visibility_of_element_located((By.XPATH, "//*[text()='Send']")))
-                send_button.click()
-                time.sleep(self.waiting_time)
-                bot_responses = [wait.until(
-                    EC.visibility_of_element_located((By.CSS_SELECTOR, "div[data-testid='bot']")))]
-                success = True if bot_responses[0].text[-1] == '.' else False
-                conts = 0
-                while not success and conts < 3:
-                    conts += 1
-                    text_area.send_keys("continue")
-                    text_area.send_keys(Keys.RETURN)
-                    time.sleep(2)
-                    send_button = wait.until(EC.visibility_of_element_located((By.XPATH, "//*[text()='Send']")))
-                    send_button.click()
-                    time.sleep(ai_expert_config.CONTINUE_WAIT_TIME)
-                    bot_responses = wait.until(
-                        EC.visibility_of_all_elements_located((By.CSS_SELECTOR, "div[data-testid='bot']")))
-                    if bot_responses[-1].text[-1] == '.':
-                        success = True
-                if success:
-                    for bot_response in bot_responses:
-                        summary += bot_response.text
+                summary = self._dialog(start_prompt)
             except Exception as e:
                 if config.LOG:
                     print(e)
                 self.waiting_time += ai_expert_config.ADDITIONAL_TIME
-        if not success:
+        self.close()
+        if summary is None:
             raise ConnectionError("Could not get result from vicuna chat service")
         if language == "RUS":
             translation = self.translator.translate(summary, dest='ru')

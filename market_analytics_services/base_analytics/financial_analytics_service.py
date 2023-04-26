@@ -12,14 +12,16 @@ from market_analytics_services.base_analytics.data_manager import DataManager
 class StockFinancialAnalyticsService(StockFinancialAnalyticsServicer):
     def __init__(self, conn: psycopg2._psycopg.connection):
         self.data_manager = DataManager(conn)
-        self.ai_expert_agent = AIExpertAgent()
+        #self.ai_expert_agent = AIExpertAgent()
 
     def GetAnalytics(self, request: StockAnalysisRequest, context) -> StockAnalysisResponse:
         try:
             metrics = self.data_manager.load_data(request)
             metrcis_str = self.data_manager.get_data_string(metrics_df=metrics, request=request)
             lang = "RUS" if (request.language not in ["RUS", "ENG"]) else request.language
-            analytics = self.ai_expert_agent.ask_for_analysis(request.stock_symbol, metrcis_str, lang)
+            #analytics = self.ai_expert_agent.ask_for_analysis(request.stock_symbol, metrcis_str, lang)
+            ai_expert_agent = AIExpertAgent()
+            analytics = ai_expert_agent.ask_for_analysis(request.stock_symbol, metrcis_str, lang)
             if request.stock_symbol.upper() == "НОВАТЭК":
                 return StockAnalysisResponse(success=True, error_msg="",
                                              years=metrics["date"].to_list(),
