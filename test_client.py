@@ -15,7 +15,14 @@ import datetime
 from market_analytics_services.market_indicators.indicators.moving_averages import SMA
 from market_analytics_services.market_indicators.indicators.rate_of_change import RoC
 from market_analytics_services.market_indicators.indicators.rsi import RSI
+from market_analytics_services.market_indicators.indicators.macd import MACD
+from market_analytics_services.market_indicators.indicators.rvi import RVI
+from market_analytics_services.market_indicators.indicators.alligator import Alligator
+from market_analytics_services.market_indicators.indicators.bollinger_bands import BollingerBands
+from market_analytics_services.market_indicators.indicators.rate_of_change import RoC
 from market_analytics_services.market_indicators.indicators_enums import DataColumn
+
+import visualizing
 
 
 def test_fundamental(stock_symbol: str):
@@ -63,13 +70,24 @@ def indi():
                             host='188.120.230.134',
                             port='5432')
     cursor = conn.cursor()
-    cursor.execute(f"""
-                    SELECT date, open, close, high, low FROM yahoofinance_historical_data
-                    WHERE ticker = 'Brent Crude Oil Last Day' AND date::date <= '2019.12.31'
-                    ORDER BY date ASC""")
+    cursor.execute(f"""SELECT date::date, open, close, high, low FROM tradingview_tickers_data
+                                     WHERE ticker = 'Gazprom' AND interval = '1d' AND date::date < '2023-02-22'
+                                     ORDER BY date::date ASC""")
     df = pd.DataFrame(cursor.fetchall(), columns=DataColumn)
     df.index = df[DataColumn.DATE]
-    res2 = RSI(df, 14)
+    start_date = datetime.date(2018,1,1)
+    res_rsi = RSI(df, 14, start_date)
+    visualizing.plot_rsi(df[start_date:], res_rsi, "plots", "Gazprom")
+    # res_macd = MACD(df,start_date=start_date)
+    # visualizing.plot_macd(df[start_date:], res_macd, "plots", "Gazprom")
+    # res_rvi = RVI(df, start_date=start_date)
+    # visualizing.plot_rvi(df[start_date:], res_rvi, "plots", "Gazprom")
+    # res_bollinger = BollingerBands(df, start_date=start_date)
+    # visualizing.plot_bollinger(df[start_date:], res_bollinger, "plots", "Gazprom")
+    # res_alligator = Alligator(df, start_date=start_date)
+    # visualizing.plot_alligator(df[start_date:], res_alligator, "plots", "Gazprom")
+    # res_alligator = RoC(df, 5, start_date=start_date)
+    # visualizing.plot_roc(df[start_date:], res_alligator, "plots", "Gazprom")
     cursor.close()
     conn.close()
 
@@ -77,4 +95,4 @@ def indi():
 if __name__ == "__main__":
     # test_indicators()
     test_fundamental("газпром")
-    # indi()
+    #indi()
