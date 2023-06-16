@@ -130,3 +130,5 @@ dmypy.json
 *.xml
 *.iml
 /prediction_models/boosting/mlruns/
+/prediction_models/arima/results/
+/plots/
