@@ -5,6 +5,7 @@ RAW_STOCKS = DATA_DIRECTORY + rf"\stocks_raw"
 STOCKS_DIFF = DATA_DIRECTORY + rf"\stocks_diff"
 STOCKS_PREPROCESSED = DATA_DIRECTORY + rf"\stocks_processed"
 STOCK_AGG = DATA_DIRECTORY + rf"\stocks_agg"
+STOCK_SPLIT_AGG = DATA_DIRECTORY + rf"\stocks_split_agg"
 
 train_start_date = '2000-01-01'
 val_start_date = '2019-01-01'

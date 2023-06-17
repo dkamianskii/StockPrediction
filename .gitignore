@@ -129,6 +129,6 @@ dmypy.json
 .pyre/
 *.xml
 *.iml
-/prediction_models/boosting/mlruns/
+/prediction_models/boosting/solo_boost/mlruns/
 /prediction_models/arima/results/
 /plots/

@@ -61,6 +61,8 @@ def multiple_observes(num_of_observes):
             x = []
             for i in range(data.shape[0] - num_of_observes):
                 x.append(data[i:i + num_of_observes].to_numpy().flatten())
+            if len(x) == 0:
+                continue
             x = np.array(x)
             val_indx = data[:val_start_date].shape[0]
             train_data = x[:val_indx]
@@ -76,7 +78,7 @@ def multiple_observes(num_of_observes):
     x_train = pd.DataFrame(np.concatenate(x_trains))
     x_train.to_csv(f"{STOCK_AGG}\\X_train_S{num_of_observes}.csv")
     for i in range(3):
-        x_val = pd.DataFrame(np.concat(x_vals[f"{i + 1}"]))
+        x_val = pd.DataFrame(np.concatenate(x_vals[f"{i + 1}"]))
         x_val.to_csv(f"{STOCK_AGG}\\X_val_{i + 1}_S{num_of_observes}.csv")
         y_val = pd.concat(y_vals[f"{i + 1}"])
         y_val.to_csv(f"{STOCK_AGG}\\y_val_{i + 1}_S{num_of_observes}.csv")
